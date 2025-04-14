@@ -1,0 +1,267 @@
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Engranajes Simples</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        #quiz-form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .question-block {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .question-block:last-child {
+            border-bottom: none;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        #result-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
+            color: #3c763d;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 1.1em;
+            display: none; /* Oculto inicialmente */
+        }
+         .correct {
+            border-color: green;
+            background-color: #e9fde9;
+        }
+        .incorrect {
+            border-color: red;
+            background-color: #fde9e9;
+        }
+        .feedback {
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .correct-feedback {
+            color: green;
+        }
+        .incorrect-feedback {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Quiz sobre Engranajes Simples</h1>
+
+    <form id="quiz-form">
+        <div id="questions-container">
+            <!-- Las preguntas se cargarán aquí mediante JavaScript -->
+        </div>
+        <button type="submit">Enviar Respuestas y Corregir</button>
+    </form>
+
+    <div id="result-container">
+        <!-- El resultado se mostrará aquí -->
+    </div>
+
+    <script>
+        // Banco de todas las preguntas posibles
+        // Fórmula base: Velocidad1 * Dientes1 = Velocidad2 * Dientes2
+        const allQuestions = [
+            { id: 1, type: 'find_speed_driven', p_teeth: 20, g_teeth: 60, p_speed: 1200, answer: (20/60)*1200 }, // 400
+            { id: 2, type: 'find_speed_pinion', p_teeth: 30, g_teeth: 90, g_speed: 500, answer: (90/30)*500 },   // 1500
+            { id: 3, type: 'find_teeth_driven', p_teeth: 25, p_speed: 1000, g_speed: 250, answer: (1000/250)*25 }, // 100
+            { id: 4, type: 'find_teeth_pinion', g_teeth: 80, p_speed: 1600, g_speed: 400, answer: (400/1600)*80 }, // 20
+            { id: 5, type: 'find_speed_driven', p_teeth: 15, g_teeth: 75, p_speed: 2000, answer: (15/75)*2000 }, // 400
+            { id: 6, type: 'find_speed_pinion', p_teeth: 40, g_teeth: 120, g_speed: 300, answer: (120/40)*300 },  // 900
+            { id: 7, type: 'find_teeth_driven', p_teeth: 10, p_speed: 1500, g_speed: 500, answer: (1500/500)*10 }, // 30
+            { id: 8, type: 'find_teeth_pinion', g_teeth: 50, p_speed: 1000, g_speed: 200, answer: (200/1000)*50 }, // 10
+            { id: 9, type: 'find_speed_driven', p_teeth: 22, g_teeth: 88, p_speed: 1800, answer: (22/88)*1800 }, // 450
+            { id: 10, type: 'find_speed_pinion', p_teeth: 18, g_teeth: 54, g_speed: 600, answer: (54/18)*600 },   // 1800
+            { id: 11, type: 'find_teeth_driven', p_teeth: 35, p_speed: 2100, g_speed: 700, answer: (2100/700)*35 },// 105
+            { id: 12, type: 'find_teeth_pinion', g_teeth: 100, p_speed: 2500, g_speed: 500, answer: (500/2500)*100},// 20
+            { id: 13, type: 'find_speed_driven', p_teeth: 28, g_teeth: 70, p_speed: 1400, answer: (28/70)*1400 }, // 560
+            { id: 14, type: 'find_speed_pinion', p_teeth: 50, g_teeth: 150, g_speed: 450, answer: (150/50)*450 },  // 1350
+            { id: 15, type: 'find_teeth_driven', p_teeth: 12, p_speed: 1200, g_speed: 300, answer: (1200/300)*12 }, // 48
+            { id: 16, type: 'find_teeth_pinion', g_teeth: 96, p_speed: 1800, g_speed: 600, answer: (600/1800)*96 }, // 32
+        ];
+
+        let currentQuizQuestions = []; // Almacenará las 10 preguntas seleccionadas para este quiz
+
+        // --- Funciones ---
+
+        // Función para barajar un array (Algoritmo Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Intercambio de elementos
+            }
+        }
+
+        // Función para generar el texto de la pregunta
+        function getQuestionText(q) {
+            switch (q.type) {
+                case 'find_speed_driven':
+                    return `Un piñón (engranaje conductor) de ${q.p_teeth} dientes gira a ${q.p_speed} RPM y engrana con una rueda conducida de ${q.g_teeth} dientes. ¿Cuál es la velocidad de la rueda conducida (en RPM)?`;
+                case 'find_speed_pinion':
+                    return `Un piñón de ${q.p_teeth} dientes engrana con una rueda conducida de ${q.g_teeth} dientes. Si la rueda conducida gira a ${q.g_speed} RPM, ¿a qué velocidad gira el piñón (en RPM)?`;
+                case 'find_teeth_driven':
+                    return `Un piñón de ${q.p_teeth} dientes gira a ${q.p_speed} RPM. Engrana con una rueda conducida que gira a ${q.g_speed} RPM. ¿Cuántos dientes tiene la rueda conducida?`;
+                case 'find_teeth_pinion':
+                    return `Un piñón gira a ${q.p_speed} RPM y engrana con una rueda conducida de ${q.g_teeth} dientes que gira a ${q.g_speed} RPM. ¿Cuántos dientes tiene el piñón?`;
+                default:
+                    return "Pregunta no definida.";
+            }
+        }
+
+        // Función para generar el HTML del quiz
+        function generateQuiz() {
+            const questionsContainer = document.getElementById('questions-container');
+            questionsContainer.innerHTML = ''; // Limpiar preguntas anteriores
+            document.getElementById('result-container').style.display = 'none'; // Ocultar resultados anteriores
+            document.getElementById('result-container').innerHTML = ''; // Limpiar texto resultado anterior
+
+             // Clonar y barajar las preguntas
+            let shuffledQuestions = [...allQuestions];
+            shuffleArray(shuffledQuestions);
+
+            // Seleccionar las primeras 10 preguntas
+            currentQuizQuestions = shuffledQuestions.slice(0, 10);
+
+            // Crear HTML para cada pregunta seleccionada
+            currentQuizQuestions.forEach((q, index) => {
+                const questionBlock = document.createElement('div');
+                questionBlock.classList.add('question-block');
+                questionBlock.setAttribute('data-question-id', q.id); // Guardar id para referencia
+
+                const label = document.createElement('label');
+                label.setAttribute('for', `answer_${q.id}`);
+                label.textContent = `Pregunta ${index + 1}: ${getQuestionText(q)}`;
+
+                const input = document.createElement('input');
+                input.setAttribute('type', 'number');
+                input.setAttribute('id', `answer_${q.id}`);
+                input.setAttribute('name', `answer_${q.id}`);
+                input.setAttribute('step', 'any'); // Permite decimales si son necesarios
+                input.required = true;
+
+                const feedbackDiv = document.createElement('div'); // Div para feedback individual
+                feedbackDiv.classList.add('feedback');
+                feedbackDiv.setAttribute('id', `feedback_${q.id}`);
+
+                questionBlock.appendChild(label);
+                questionBlock.appendChild(input);
+                questionBlock.appendChild(feedbackDiv); // Añadir div de feedback
+                questionsContainer.appendChild(questionBlock);
+            });
+        }
+
+        // Función para corregir el quiz
+        function gradeQuiz(event) {
+            event.preventDefault(); // Evitar que el formulario se envíe de la forma tradicional
+
+            let score = 0;
+            const resultContainer = document.getElementById('result-container');
+            const inputs = document.querySelectorAll('#quiz-form input[type="number"]');
+
+            // Deshabilitar inputs y botón después de enviar
+            inputs.forEach(input => input.disabled = true);
+            document.querySelector('#quiz-form button').disabled = true;
+
+
+            currentQuizQuestions.forEach(q => {
+                const inputElement = document.getElementById(`answer_${q.id}`);
+                const feedbackElement = document.getElementById(`feedback_${q.id}`);
+                const userAnswer = parseFloat(inputElement.value);
+                const correctAnswer = parseFloat(q.answer.toFixed(2)); // Redondear respuesta correcta a 2 decimales para comparación
+
+                // Limpiar clases y feedback anteriores
+                inputElement.classList.remove('correct', 'incorrect');
+                feedbackElement.textContent = '';
+                feedbackElement.classList.remove('correct-feedback', 'incorrect-feedback');
+
+                // Usar una pequeña tolerancia para comparar números flotantes
+                const tolerance = 0.01;
+                if (!isNaN(userAnswer) && Math.abs(userAnswer - correctAnswer) < tolerance) {
+                    score++;
+                    inputElement.classList.add('correct');
+                    feedbackElement.textContent = `¡Correcto!`;
+                    feedbackElement.classList.add('correct-feedback');
+                } else {
+                    inputElement.classList.add('incorrect');
+                    feedbackElement.textContent = `Incorrecto. La respuesta correcta era ${correctAnswer}.`;
+                     feedbackElement.classList.add('incorrect-feedback');
+                }
+            });
+
+            // Mostrar resultado final
+            resultContainer.innerHTML = `<h2>Resultado Final</h2><p>Has acertado ${score} de ${currentQuizQuestions.length} preguntas.</p>`;
+            resultContainer.style.display = 'block'; // Mostrar el contenedor de resultados
+             // Opcional: Añadir un botón para reiniciar el quiz
+            const restartButton = document.createElement('button');
+            restartButton.textContent = 'Intentar de Nuevo';
+            restartButton.style.marginTop = '15px';
+            restartButton.style.width = 'auto'; // Ajustar ancho
+            restartButton.style.padding = '10px 20px';
+            restartButton.onclick = () => {
+                 // Habilitar inputs y botón de envío
+                inputs.forEach(input => input.disabled = false);
+                document.querySelector('#quiz-form button').disabled = false;
+                generateQuiz(); // Genera un nuevo conjunto de preguntas
+            };
+            resultContainer.appendChild(restartButton);
+        }
+
+        // --- Event Listeners ---
+
+        // Generar el quiz cuando la página se cargue
+        document.addEventListener('DOMContentLoaded', generateQuiz);
+
+        // Corregir el quiz cuando se envíe el formulario
+        document.getElementById('quiz-form').addEventListener('submit', gradeQuiz);
+
+    </script>
+
+</body>
+</html>
